@@ -1,19 +1,18 @@
 package battleship;
 
+import java.io.Console;
 import java.util.Scanner;
 
 class Main {
     Scanner scanner = new Scanner(System.in);
     public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
         final int ROWS = 10;
         final int COLUMNS = 10;
 
-        BattleField game = new BattleField(1, ROWS, COLUMNS,"unknown");
-        game.showBoard("unknown");
+        BattleField game = new BattleField(ROWS, COLUMNS,"Player 1", "Player 2");
         game.setBoardInicialization();
-        game.showBoard("unknown");
-
-        System.out.println("\nThe game starts!\n");
+        //System.out.println("\nThe game starts!\n");
         game.showBoard("unknown", BattleShipSymbols.FOG_OF_WAR.symbol);
         game.TakeAShot("unknown");
 
@@ -27,10 +26,11 @@ class BattleField {
     private String [] playerNames;
     private Board2D [] gameBoards;
 
-    public BattleField(int playersQuantity, int rows, int columns, String... playerNames) {
+    public BattleField(int rows, int columns, String... playerNames) {
+        int playersQuantity = playerNames.length;
         Board2D [] newGameBoards = new Board2D [playersQuantity];
         for (int i = 0; i < playersQuantity; i++) {
-            newGameBoards [i] = new Board2D(playerNames[0], rows, columns);
+            newGameBoards [i] = new Board2D(playerNames[i], rows, columns);
         }
         gameBoards = newGameBoards.clone();
     }
@@ -57,10 +57,12 @@ class BattleField {
         int c1;
         int c2;
         String line;
+
         for (Board2D board : gameBoards) {
+            System.out.printf("%s, place your ships to the game field\n", board.getName());
+            board.showMe();
             for (Fleet ship : Fleet.values()) {
                 boolean settedShip = false;
-
                 while (!settedShip) {
                     System.out.printf("\nEnter the coordinates of the %s (%d cells):\n\n", ship.shipType, ship.length);
                     line = scanner.next();
@@ -95,11 +97,14 @@ class BattleField {
                 //break;
                 board.showMe();
             }
+            System.out.println("Press Enter and pass the move to another player");
+            scanner.nextLine();
+            scanner.nextLine();
         }
     }
 
     public void TakeAShot(String playerName) {
-        System.out.println("\nTake a shot!\n");
+        //System.out.println("\nTake a shot!\n");
         boolean validHit = false;
         boolean goodHit;
         boolean existsShipsToSank = true;
@@ -108,9 +113,16 @@ class BattleField {
         int r1 = 0;
         int c1 = 0;
         int MaxProximity;
+        int opponentBoardId;
 
         while (existsShipsToSank) {
             for (Board2D board : gameBoards) {
+                opponentBoardId = getOpponentBoardId(board.getName());
+                gameBoards[opponentBoardId].showMe(true);
+                System.out.print("---------------------");
+                board.showMe();
+                System.out.printf("%s, it's your turn:\n", board.getName());
+
                 while (!validHit) {
                     line = scanner.next();
                     r1 = line.charAt(0) - 65;
@@ -124,38 +136,48 @@ class BattleField {
 
                 }
 
-                if (playerName.equals(board.getName())) {
-                    goodHit = board.changePlace(r1, c1,
-                            BattleShipSymbols.HITTED_SIDE.symbol,
-                            BattleShipSymbols.SIDE.symbol);
-                    if (goodHit) {
-                        System.out.println();
-                        board.showMe(true);
-                        System.out.println("\nYou hit a ship!");
-                        //board.showMe();
-                        aShipSank = !board.existsSymbolNearTheRange(r1, c1, 1, BattleShipSymbols.SIDE.symbol);
-                        MaxProximity = Math.max(board.getRows(), board.getColumns());
-                        existsShipsToSank = board.existsSymbolNearTheRange(r1, c1, MaxProximity, BattleShipSymbols.SIDE.symbol);
-                        if (!existsShipsToSank) {
-                            System.out.println("\nYou sank the last ship. You won. Congratulations!");
-                            continue;
-                        } else if (aShipSank) {
-                            System.out.println("\nYou sank a ship! Specify a new target:");
-                        }
-                    } else {
-                        board.changePlace(r1, c1,
-                                BattleShipSymbols.MISSED_SHOT.symbol,
-                                BattleShipSymbols.FOG_OF_WAR.symbol);
-                        System.out.println();
-                        board.showMe(true);
-                        System.out.println("\nYou missed!");
-                        //board.showMe();
-
+                goodHit = gameBoards[opponentBoardId].changePlace(r1, c1,
+                        BattleShipSymbols.HITTED_SIDE.symbol,
+                        BattleShipSymbols.SIDE.symbol);
+                if (goodHit) {
+                    System.out.println();
+                    //board.showMe(true);
+                    System.out.println("\nYou hit a ship!");
+                    //board.showMe();
+                    aShipSank = !gameBoards[opponentBoardId].existsSymbolNearTheRange(r1, c1, 1, BattleShipSymbols.SIDE.symbol);
+                    MaxProximity = Math.max(gameBoards[opponentBoardId].getRows(), gameBoards[opponentBoardId].getColumns());
+                    existsShipsToSank = gameBoards[opponentBoardId].existsSymbolNearTheRange(r1, c1, MaxProximity, BattleShipSymbols.SIDE.symbol);
+                    if (!existsShipsToSank) {
+                        System.out.println("\nYou sank the last ship. You won. Congratulations!");
+                        continue;
+                    } else if (aShipSank) {
+                        System.out.println("\nYou sank a ship! Specify a new target:");
                     }
+                } else {
+                    gameBoards[opponentBoardId].changePlace(r1, c1,
+                            BattleShipSymbols.MISSED_SHOT.symbol,
+                            BattleShipSymbols.FOG_OF_WAR.symbol);
+                    System.out.println();
+                    //board.showMe(true);
+                    System.out.println("\nYou missed!");
+                    //board.showMe();
                 }
                 validHit = false;
+                System.out.println("Press Enter and pass the move to another player");
+                scanner.nextLine();
+                scanner.nextLine();
+
             }
         }
+    }
+
+    public int getOpponentBoardId(String boardName) {
+        for (int i = 0; i < gameBoards.length; i++) {
+            if (!gameBoards[i].getName().equals(boardName)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     public void getScore(Board2D [] boards) {
